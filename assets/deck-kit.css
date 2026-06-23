@@ -1,0 +1,152 @@
+/* ============================================================
+   COMPOUND DECK KIT — engine CSS (full-page behavior + author chrome)
+   Pair with deck-kit.js. Load order in <head>:
+       <link rel="stylesheet" href="assets/deck-kit.css">
+       <link rel="stylesheet" href="themes/<theme>.css">   (theme wins)
+       <script defer src="assets/deck-kit.js"></script>
+   Requirement: each slide is <section class="slide"> … </section>.
+   Optional:    <script type="application/json" id="speaker-notes">[…]</script>
+
+   Everything here is generic. Themes set colors/fonts/layout and may
+   override the --dk-* chrome variables below to match the deck.
+   by Compound Systems · usecompound.ai
+============================================================ */
+
+:root {
+    /* chrome accents — themes override these to match the deck */
+    --dk-accent:        #1f6b63;   /* active nav dot, reveal-gate, edit focus */
+    --dk-accent-2:      #c9ae3c;   /* progress bar, marker pins */
+    --dk-accent-bright: #5ae0c8;   /* active nav dot on dark slides */
+    --dk-ease:          cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ---- full-page scroll-snap base ---- */
+html { scroll-snap-type: y mandatory; scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body { margin: 0; }
+
+.slide {
+    position: relative;
+    width: 100vw; height: 100vh; height: 100dvh;
+    scroll-snap-align: start; overflow: hidden;
+    display: flex; flex-direction: column;
+}
+
+/* ---- reveal animation (ease-out-expo) ---- */
+.reveal {
+    opacity: 0; transform: translateY(28px);
+    transition: opacity 0.8s var(--dk-ease), transform 0.8s var(--dk-ease);
+}
+.slide.visible .reveal { opacity: 1; transform: none; }
+.reveal.d1{transition-delay:.05s}.reveal.d2{transition-delay:.12s}.reveal.d3{transition-delay:.20s}
+.reveal.d4{transition-delay:.28s}.reveal.d5{transition-delay:.36s}.reveal.d6{transition-delay:.44s}
+.reveal.d7{transition-delay:.52s}.reveal.d8{transition-delay:.60s}
+
+/* ---- tap-to-reveal gate (optional, opt-in) ----
+   Wrap hidden content in [data-gate]; put a <button class="reveal-gate">
+   inside it. Click (or Enter/Space on that slide) reveals .gate-item kids. */
+[data-gate] .gate-item {
+    opacity: 0; transform: translateY(16px);
+    transition: opacity .7s var(--dk-ease), transform .7s var(--dk-ease);
+}
+[data-gate].revealed .gate-item { opacity: 1; transform: none; }
+[data-gate].revealed .reveal-gate { opacity: 0; pointer-events: none; transform: scale(1.03); }
+.reveal-gate {
+    cursor: pointer; transition: opacity .5s var(--dk-ease), transform .5s var(--dk-ease);
+}
+
+/* ---- progress + nav dots (auto-injected) ---- */
+.deck-progress { position: fixed; top: 0; left: 0; height: 3px; width: 0%; background: var(--dk-accent-2); z-index: 9999; transition: width .3s cubic-bezier(.2,.7,.2,1); }
+.nav-dots { position: fixed; right: clamp(10px,1.4vw,18px); top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 9px; z-index: 9998; }
+.nav-dots button { width: 9px; height: 9px; border-radius: 50%; background: rgba(127,127,127,.30); border: none; padding: 0; cursor: pointer; transition: background .3s, transform .3s; }
+.nav-dots button.on { background: var(--dk-accent); transform: scale(1.35); }
+.nav-dots button.light { background: rgba(244,242,237,.3); }
+.nav-dots button.light.on { background: var(--dk-accent-bright); }
+
+/* ============================================================
+   PRESENTATION CURSOR
+   A soft circle that auto-contrasts against any background via
+   mix-blend-mode: difference (light on dark, dark on light), grows
+   over interactive targets. Pointer devices only. Off while editing.
+============================================================ */
+.deck-cursor {
+    position: fixed; top: 0; left: 0; width: 24px; height: 24px; border-radius: 50%;
+    background: rgba(255,255,255,0.6); mix-blend-mode: difference;
+    pointer-events: none; z-index: 2147483000;
+    transition: width .18s var(--dk-ease), height .18s var(--dk-ease), background .18s var(--dk-ease), opacity .2s ease;
+}
+.deck-cursor.hot { width: 48px; height: 48px; background: rgba(255,255,255,0.88); }
+.deck-cursor.hidden { opacity: 0; }
+body.deck-cursor-on, body.deck-cursor-on * { cursor: none !important; }
+@media (hover: none), (pointer: coarse) {
+    .deck-cursor { display: none !important; }
+    body.deck-cursor-on, body.deck-cursor-on * { cursor: auto !important; }
+}
+
+/* ============================================================
+   AUTHOR + PRESENTER CHROME
+   Controls live top-center and only appear when the mouse is near
+   the top edge. All chrome is hidden in print.
+============================================================ */
+.ea-controls {
+    position: fixed; top: 12px; left: 50%; display: flex; gap: 6px;
+    z-index: 2147483600; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    opacity: 0; pointer-events: none; transform: translate(-50%, -10px);
+    transition: opacity .25s ease, transform .25s cubic-bezier(.2,.8,.2,1);
+}
+.ea-controls.near-top { opacity: 0.9; pointer-events: auto; transform: translate(-50%, 0); }
+.ea-controls.near-top:hover { opacity: 1; }
+.ea-controls button { appearance: none; background: rgba(18,20,22,.85); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,.16); color: #f4f2ed; padding: 6px 11px; border-radius: 7px; font-size: 12px; font-weight: 500; cursor: pointer; white-space: nowrap; transition: background .15s; }
+.ea-controls button:hover { background: rgba(18,20,22,.97); }
+.ea-controls button.on { background: var(--dk-accent-2); border-color: var(--dk-accent-2); color: #14140e; }
+.ea-controls button.ea-mini { padding: 6px 9px; opacity: .7; }
+
+body.ea-editing [contenteditable]:hover { outline: 1px dashed color-mix(in srgb, var(--dk-accent) 45%, transparent); outline-offset: 3px; }
+body.ea-editing [contenteditable]:focus { outline: 1.5px dashed color-mix(in srgb, var(--dk-accent-2) 85%, transparent); outline-offset: 3px; }
+body.ea-annotating .slide [data-ea-id]:hover { outline: 1px solid color-mix(in srgb, var(--dk-accent-2) 55%, transparent); outline-offset: 2px; cursor: crosshair; }
+body.ea-annotating .slide { cursor: crosshair; user-select: none; }
+
+/* free-form region annotations: a box drawn anywhere, with a note pinned to it */
+.ea-region { position: absolute; box-sizing: border-box; z-index: 45; display: none; cursor: pointer; border: 1.5px solid var(--dk-accent-2); border-radius: 6px; background: color-mix(in srgb, var(--dk-accent-2) 10%, transparent); }
+body.ea-annotating .ea-region, body.ea-editing .ea-region { display: block; }
+.ea-region > .ea-marker { display: block; }
+.ea-region-draw { position: fixed; box-sizing: border-box; z-index: 2147483600; pointer-events: none; border: 1.5px dashed var(--dk-accent-2); border-radius: 6px; background: color-mix(in srgb, var(--dk-accent-2) 12%, transparent); }
+
+.ea-marker { display: none; position: absolute; top: -11px; right: -11px; z-index: 50; width: 22px; height: 22px; border-radius: 50%; background: var(--dk-accent-2); color: #14140e; font-size: 12px; line-height: 22px; text-align: center; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,.3); }
+body.ea-editing .ea-marker, body.ea-annotating .ea-marker { display: block; }
+
+.ea-popover { position: fixed; z-index: 2147483650; width: 300px; background: #16302d; border: 1px solid rgba(255,255,255,.14); border-radius: 10px; padding: 12px; box-shadow: 0 12px 34px rgba(0,0,0,.5); display: flex; flex-direction: column; gap: 10px; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
+.ea-popover textarea { width: 100%; min-height: 90px; resize: vertical; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.14); border-radius: 7px; color: #f4f2ed; font: inherit; font-size: 14px; padding: 9px; line-height: 1.45; }
+.ea-pop-row { display: flex; justify-content: space-between; }
+.ea-pop-row button { appearance: none; border: 0; border-radius: 7px; padding: 7px 14px; font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; }
+.ea-pop-del { background: transparent; color: rgba(244,242,237,.55); }
+.ea-pop-save { background: var(--dk-accent); color: #fff; }
+
+.ea-notes-panel { position: fixed; right: 16px; bottom: 16px; width: 460px; max-width: calc(100vw - 32px); max-height: 44vh; background: #0c1c1c; border: 1px solid rgba(255,255,255,.14); border-radius: 12px; box-shadow: 0 14px 40px rgba(0,0,0,.55); z-index: 2147483620; display: none; flex-direction: column; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
+.ea-notes-panel.open { display: flex; }
+.ea-np-head { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid rgba(255,255,255,.1); }
+.ea-np-label { font-size: 12px; text-transform: uppercase; letter-spacing: .12em; color: var(--dk-accent-bright); font-weight: 600; }
+.ea-np-hint { font-size: 11px; color: rgba(244,242,237,.4); margin-left: 8px; text-transform: none; letter-spacing: 0; }
+.ea-np-close { appearance: none; background: transparent; border: 0; color: rgba(244,242,237,.55); font-size: 20px; cursor: pointer; }
+.ea-np-body { padding: 16px; overflow-y: auto; font-size: 17px; line-height: 1.55; color: #f4f2ed; outline: none; }
+.ea-np-body strong { color: var(--dk-accent-2); }
+.ea-notes-panel.editing .ea-np-body { background: rgba(255,255,255,.04); box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--dk-accent-2) 60%, transparent); border-radius: 8px; }
+
+.ea-toast { position: fixed; bottom: 18px; left: 50%; transform: translate(-50%, 12px); background: #16302d; color: #f4f2ed; border: 1px solid rgba(255,255,255,.14); padding: 8px 16px; border-radius: 999px; font-size: 13px; z-index: 2147483640; opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
+.ea-toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+/* ---- print: one slide per page, animations resolved, chrome gone ---- */
+@page { size: 1280px 720px; margin: 0; }
+@media print {
+    html, body { scroll-snap-type: none; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    .slide { width: 1280px; height: 720px; page-break-after: always; break-after: page; }
+    .reveal { opacity: 1 !important; transform: none !important; }
+    [data-gate] .gate-item { opacity: 1 !important; transform: none !important; }
+    .reveal-gate { display: none !important; }
+    .deck-progress, .nav-dots, .ea-controls, .ea-notes-panel, .ea-popover, .ea-toast, .ea-marker, .ea-region, .ea-region-draw, .deck-cursor, .theme-switch { display: none !important; }
+    /* No edit-mode affordances in print: contenteditable focus rings, the
+       hover/focus dashed outlines (lines 104-106), nothing draws a box. */
+    [contenteditable], body.ea-editing [contenteditable]:hover, body.ea-editing [contenteditable]:focus,
+    body.ea-annotating .slide [data-ea-id]:hover, [data-ea-id], :focus, :focus-visible { outline: none !important; box-shadow: none !important; }
+}
